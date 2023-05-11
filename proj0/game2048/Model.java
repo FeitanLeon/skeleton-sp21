@@ -113,7 +113,59 @@ public class Model extends Observable {
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
+        board.setViewingPerspective(side);
+        int size= board.size();
 
+
+        for (int col = 0; col < size; col++) {
+
+
+            //step 1:move every non-empty tile in order(do not merge)，
+            for (int row = size - 1; row >= 0; row--) {
+                Tile t = board.tile(col, row);
+                if (t == null) {
+                    int voidPos = row;
+                    for (int count = voidPos - 1; count >= 0; count--) {
+                        if (board.tile(col, count) != null) {
+                            Tile t1 = board.tile(col, count);
+                            board.move(col, voidPos, t1);
+                            changed = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Step2 : try to merge.
+            for (int row = 3; row >= 0; row--) {
+                Tile curTile = board.tile(col, row);
+                int nextLine = row - 1;
+                if (nextLine < 0) {
+                    break;
+                }
+                Tile nextTile = board.tile(col, nextLine);
+                if (curTile == null || nextTile == null) {
+                    break;
+                }
+
+
+                if (nextTile.value() == curTile.value()) {
+                    board.move(col, row, nextTile);
+                    score += curTile.value() * 2;
+                    for (int p = nextLine - 1; p >= 0; p--) {
+                        Tile tt = board.tile(col, p);
+                        if (tt == null) break;
+                        board.move(col, p + 1, tt);
+                    }
+                    changed = true;
+                }
+            }
+        }
+
+
+
+
+        board.setViewingPerspective(Side.NORTH);
         checkGameOver();
         if (changed) {
             setChanged();
@@ -138,6 +190,14 @@ public class Model extends Observable {
      * */
     public static boolean emptySpaceExists(Board b) {
         // TODO: Fill in this function.
+        int size = b.size();
+        for (int row = 0; row< size; row++) {
+            for (int col    = 0; col <size; col++) {
+                if (b.tile(col, row) == null) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -148,6 +208,16 @@ public class Model extends Observable {
      */
     public static boolean maxTileExists(Board b) {
         // TODO: Fill in this function.
+        int size = b.size();
+        for (int col = 0; col < size; col++) {
+            for (int row = 0; row < size; row++) {
+                Tile t = b.tile(col, row);
+                // only when t != null should we check t.value()
+                if (t != null && t.value() == MAX_PIECE) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -157,8 +227,32 @@ public class Model extends Observable {
      * 1. There is at least one empty space on the board.
      * 2. There are two adjacent tiles with the same value.
      */
-    public static boolean atLeastOneMoveExists(Board b) {
+    public static boolean atLeastOneMoveExists(Board b){
         // TODO: Fill in this function.
+        if (emptySpaceExists(b)) {
+            return true;
+        }
+        int[] dx = {0, -1, 0, 1};
+        int[] dy = {-1, 0, 1, 0};
+
+        int size = b.size();
+        for (int col = 0; col < size; col++) {
+            for (int row = 0; row < size; row++) {
+                // Because we have checked emptySpace, t.values() must exist
+                int curTileValue = b.tile(col, row).value();
+                for (int move = 0; move < 4; move++) {
+                    int colNew = col + dx[move];
+                    int rowNew = row + dy[move];
+                    // make sure the tile is within the boundary
+                    if (colNew > 0 && colNew < size && rowNew > 0 && rowNew < size) {
+                        Tile newTile = b.tile(colNew, rowNew);
+                        if (newTile.value() == curTileValue) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
         return false;
     }
 
